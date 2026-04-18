@@ -27,16 +27,13 @@ export function setupBot(app: any) {
     ctx.reply("Salom! Men Malika, Optombazar'dan. Qanday yordam kerak?");
   });
 
-  bot.on('text', async (ctx) => {
+  async function handleUserMessage(ctx: any, msgText: string, userAudioData?: { data: string, mimeType: string }) {
     const userId = ctx.from.id;
-    
     try {
       await ctx.sendChatAction('record_voice');
-      
-      const msgText = ctx.text;
 
       // RAG: Search relevant knowledge for THIS specific message
-      const ragContext = await searchKnowledgeBase(msgText, 3);
+      const ragContext = await searchKnowledgeBase(msgText || "audio message", 3);
       
       let chat = userChats.get(userId);
       const currentAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
@@ -52,8 +49,14 @@ export function setupBot(app: any) {
         userChats.set(userId, chat);
       }
 
-      const response = await chat.sendMessage({ message: ragContext ? `${msgText}\n\n---\nQo'shimcha kontekst:\n${ragContext}` : msgText });
-      const responseText = response.text || "Kechirasiz, men tushuna olmadim.";
+      // Prepare parts for Gemini
+      const parts: any[] = [];
+      if (msgText) parts.push({ text: msgText });
+      if (userAudioData) parts.push({ inlineData: userAudioData });
+      if (ragContext) parts.push({ text: `\n\n---\nQo'shimcha kontekst:\n${ragContext}` });
+
+      const result = await chat.sendMessage({ message: parts });
+      const responseText = result.response.text() || "Kechirasiz, men tushuna olmadim.";
       
       let finalResponseText = responseText;
       let imageUrls: string[] = [];
@@ -147,6 +150,29 @@ export function setupBot(app: any) {
     } catch (err: any) {
       console.error("Bot error processing message:", err);
       await ctx.reply("Uzur, texnik xatolik yuz berdi. Iltimos qayta urinib ko'ring.");
+    }
+  }
+
+  bot.on('text', async (ctx) => {
+    await handleUserMessage(ctx, ctx.text);
+  });
+
+  bot.on('voice', async (ctx) => {
+    try {
+      const fileId = ctx.message.voice.file_id;
+      const fileLink = await ctx.telegram.getFileLink(fileId);
+      
+      const response = await fetch(fileLink.href);
+      const arrayBuffer = await response.arrayBuffer();
+      const base64Audio = Buffer.from(arrayBuffer).toString('base64');
+
+      await handleUserMessage(ctx, "", {
+        data: base64Audio,
+        mimeType: 'audio/ogg'
+      });
+    } catch (err) {
+      console.error("Voice processing error:", err);
+      await ctx.reply("Ovozli xabarni tushunishda xatolik yuz berdi.");
     }
   });
 
