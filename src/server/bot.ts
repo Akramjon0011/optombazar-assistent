@@ -40,7 +40,7 @@ export function setupBot(app: any) {
 
       if (!chat) {
         chat = await currentAi.chats.create({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-3.1-flash-lite-preview',
           config: {
             systemInstruction: SYSTEM_INSTRUCTION + ragContext,
             temperature: 0.7,

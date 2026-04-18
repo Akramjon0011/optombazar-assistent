@@ -37,7 +37,7 @@ async function fetchRAGContext(query: string): Promise<string> {
 export async function createChat() {
   // Create chat with base system instruction (no preloaded KB)
   return ai.chats.create({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3.1-flash-lite-preview',
     config: {
       systemInstruction: SYSTEM_INSTRUCTION,
       temperature: 0.7,
