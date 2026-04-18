@@ -56,7 +56,7 @@ export function setupBot(app: any) {
       if (ragContext) parts.push({ text: `\n\n---\nQo'shimcha kontekst:\n${ragContext}` });
 
       const result = await chat.sendMessage({ message: parts });
-      const responseText = result.response.text() || "Kechirasiz, men tushuna olmadim.";
+      const responseText = result.text || "Kechirasiz, men tushuna olmadim.";
       
       let finalResponseText = responseText;
       let imageUrls: string[] = [];
